@@ -61,9 +61,6 @@ enum
 
 new waterCount=-1;
 new Text:waterTD;
-new waterCheckTimer;
-
-forward CW_CheckWater();
 
 forward OnPlayerEnterWater(playerid , waterid);
 forward OnPlayerLeaveWater(playerid , waterid);
@@ -180,12 +177,12 @@ hook OnPlayerLeaveDynamicArea(playerid , areaid)
 hook OnPlayerUpdate(playerid)
 {
 
-    	new Float:x,Float:y,Float:z;
-		GetPlayerPos(playerid,x,y,z);
+    	
 
-		if(IsPlayerConnected(playerid) && !IsPlayerNPC(playerid) && playerWater[playerid][playerInWater] == true)
+		if(!IsPlayerNPC(playerid) && playerWater[playerid][playerInWater] == true)
 		{
-		
+			new Float:x,Float:y,Float:z;
+			GetPlayerPos(playerid,x,y,z);
 		    if(z < waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 0.45)
 		    {
 		        if(!playerWater[playerid][playerWaterTD])
@@ -296,7 +293,7 @@ hook OnPlayerUpdate(playerid)
 		return 1;
 }
 
-stock SetPlayerLookAt(playerid, Float:X, Float:Y)
+stock SetPlayerLookAt(playerid, Float:X, Float:Y) // credits to someone in samp forums I can not remember
 {
 	new Float:Px, Float:Py, Float: Pa;
 	GetPlayerPos(playerid, Px, Py, Pa);
@@ -343,7 +340,6 @@ hook OnFilterScriptExit()
 
 hook OnGameModeInit()
 {
-
     waterTD = TextDrawCreate(-20.000000,2.000000,"|");
     TextDrawUseBox(waterTD,1);
     TextDrawBoxColor(waterTD,0x22446644);
@@ -356,7 +352,12 @@ hook OnGameModeInit()
     TextDrawSetOutline(waterTD,1);
     TextDrawSetProportional(waterTD,1);
     TextDrawSetShadow(waterTD,1);
+    return 1;
+}
 
+hook OnGameModeExit()
+{
+    TextDrawDestroy(waterTD);
     return 1;
 }
 
