@@ -21,6 +21,7 @@
 
 #include a_samp
 #include streamer
+#include <YSI/y_hook>
 
 #define MAX_WATERS 500
 
