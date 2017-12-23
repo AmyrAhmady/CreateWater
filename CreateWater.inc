@@ -10,6 +10,7 @@
 			GetPlayerWaterID(playerid);
 			GetWaterDepth(waterid);
 			GetPlayerSwimStyle(playerid);
+			DestroyWater(waterid);
 
 		Callbacks :
 		    OnPlayerEnterWater(playerid , waterid)
@@ -21,7 +22,6 @@
 
 #include a_samp
 #include streamer
-#include <YSI/y_hook>
 
 #define MAX_WATERS 500
 
@@ -33,7 +33,8 @@ enum CW_waterInfo
 	Float:waterMinY,
 	Float:waterMaxY,
 	Float:waterZ,
-	Float:waterD
+	Float:waterD,
+	waterAvailable
 }
 
 new waterInfo[MAX_WATERS][CW_waterInfo];
@@ -59,7 +60,6 @@ enum
 	SWIM_STYLE_INVALID
 }
 
-new waterCount=-1;
 new Text:waterTD;
 
 forward OnPlayerEnterWater(playerid , waterid);
@@ -81,7 +81,9 @@ stock CreateWater(Float:minx , Float:miny , Float:maxx , Float: maxy , Float:z ,
 	    yWay=1;
 
 
-	if(waterCount >= MAX_WATERS) return printf("You've reached the limit %d in creating new waters" , MAX_WATERS);
+    new waterCount = FindFreeWaterSlot();
+    if(waterCount == -1) return printf("You've reached the limit %d in creating new waters" , MAX_WATERS);
+    
 
     if((maxx - minx) < 0.0) xWay= -1;
 	if((maxy - miny) < 0.0) yWay= -1;
@@ -95,32 +97,73 @@ stock CreateWater(Float:minx , Float:miny , Float:maxx , Float: maxy , Float:z ,
 	{
 		new CW_shit = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay , miny , z , -90.0 , 0.0 , 0.0);
 		SetDynamicObjectMaterial(CW_shit , 0 , 19603 , "ballyswater" , "waterclear256");
+		Streamer_SetIntData(STREAMER_TYPE_OBJECT, CW_shit, E_STREAMER_EXTRA_ID, 666);
 
 		CW_shit = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay , miny , z , 90.0 , 0.0 , 0.0);
 		SetDynamicObjectMaterial(CW_shit , 0 , 19603 , "ballyswater" , "waterclear256");
+		Streamer_SetIntData(STREAMER_TYPE_OBJECT, CW_shit, E_STREAMER_EXTRA_ID, 666);
 
 		for(new j=1; j<yWayCount; j++)
 		{
 			new CW_shit1 = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay  , miny + ((1.908086 * j))*yWay , z , -90.0 , 0.0 , 0.0);
 		    SetDynamicObjectMaterial(CW_shit1 , 0 , 19603 , "ballyswater" , "waterclear256");
+		    Streamer_SetIntData(STREAMER_TYPE_OBJECT, CW_shit1, E_STREAMER_EXTRA_ID, 666);
 
 		    CW_shit1 = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay  , miny + ((1.908086 * j))*yWay , z , 90.0 , 0.0 , 0.0);
 		    SetDynamicObjectMaterial(CW_shit1 , 0 , 19603 , "ballyswater" , "waterclear256");
+		    Streamer_SetIntData(STREAMER_TYPE_OBJECT, CW_shit1, E_STREAMER_EXTRA_ID, 666);
 		}
 	}
 
-	waterCount++;
 	waterInfo[waterCount][waterMinX] = minx - ((2.13943 / 2))*xWay;
 	waterInfo[waterCount][waterMaxX] = minx + ((2.13943 * xWayCount) - (2.13943 / 2)*xWay)*xWay;
 	waterInfo[waterCount][waterMinY] = miny - ((1.908086 / 2))*yWay;
 	waterInfo[waterCount][waterMaxY] = miny + ((1.908086 * yWayCount) - (1.908086 / 2)*yWay)*yWay;
 	waterInfo[waterCount][waterZ] = z-0.1;
 	waterInfo[waterCount][waterD] = depth;
+	waterInfo[waterCount][waterAvailable] = 0;
 
 
-	waterInfo[waterCount][waterArea] = CreateDynamicCube(minx - ((2.13943 / 2))*xWay , miny - ((1.908086 / 2))*yWay , z-0.30 , minx + ((2.13943 * xWayCount) - (2.13943 / 2)*xWay)*xWay , miny + ((1.908086 * yWayCount) - (1.908086 / 2)*yWay)*yWay , depth);
+	waterInfo[waterCount][waterArea] = CreateDynamicCube(minx - ((2.13943 / 2))*xWay , miny - ((1.908086 / 2))*yWay , z-0.25 , minx + ((2.13943 * xWayCount) - (2.13943 / 2)*xWay)*xWay , miny + ((1.908086 * yWayCount) - (1.908086 / 2)*yWay)*yWay , depth);
+
+    Streamer_SetIntData(STREAMER_TYPE_AREA, waterInfo[waterCount][waterArea], E_STREAMER_EXTRA_ID, waterCount);
 
 	return waterCount;
+}
+
+stock DestroyWater(waterid)
+{
+
+    if(waterInfo[waterid][waterAvailable] == 0)
+	{
+        new j = Streamer_GetUpperBound(STREAMER_TYPE_OBJECT);
+    	for(new i=0; i<j; i++)
+    	{
+			if(IsValidDynamicObject(i))
+			{
+        		new eid = Streamer_GetIntData(STREAMER_TYPE_OBJECT, i, E_STREAMER_EXTRA_ID);
+        		if(eid == 666)
+				{
+					Streamer_SetIntData(STREAMER_TYPE_OBJECT, i, E_STREAMER_EXTRA_ID, 0);
+					DestroyDynamicObject(i);
+				}
+			}
+		}
+		
+		DestroyDynamicArea(waterInfo[waterid][waterArea]);
+	    waterInfo[waterid][waterMinX] = 0.0;
+		waterInfo[waterid][waterMaxX] = 0.0;
+		waterInfo[waterid][waterMinY] = 0.0;
+		waterInfo[waterid][waterMaxY] = 0.0;
+		waterInfo[waterid][waterZ] = 0.0;
+		waterInfo[waterid][waterD] = 0.0;
+		waterInfo[waterid][waterAvailable] = 1;
+		waterInfo[waterid][waterArea] = -1;
+		
+		return 1;
+		
+	}
+	return 0;
 }
 
 stock GetPlayerWaterID(playerid)
@@ -139,46 +182,66 @@ stock Float:GetWaterDepth(waterid)
 	return waterInfo[waterid][waterD];
 }
 
-hook OnPlayerEnterDynamicArea(playerid , areaid)
+stock FindFreeWaterSlot()
 {
 	for(new i=0; i<MAX_WATERS; i++)
 	{
-	    if(areaid == waterInfo[i][waterArea])
-	    {
-			playerWater[playerid][playerInWater] = true;
-			playerWater[playerid][playerWaterID] = i;
-			CallRemoteFunction("OnPlayerEnterWater" , "ii" , playerid , i);
-			return 1;
-		}
+		if(waterInfo[i][waterAvailable] == 1) return i;
 	}
-	return 1;
+	return -1;
 }
 
-hook OnPlayerLeaveDynamicArea(playerid , areaid)
+public OnPlayerEnterDynamicArea(playerid , areaid)
 {
-	for(new i=0; i<MAX_WATERS; i++)
+	new i = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID);
+	if(0 <= i < MAX_WATERS)
 	{
-	    if(areaid == waterInfo[i][waterArea])
-	    {
-			playerWater[playerid][playerInWater] = false;
-			playerWater[playerid][playerWaterID] = -1;
+		playerWater[playerid][playerInWater] = true;
+		playerWater[playerid][playerWaterID] = i;
+		CallRemoteFunction("OnPlayerEnterWater" , "ii" , playerid , i);
+		return 1;
 
-			if(GetPlayerSwimStyle(playerid) != SWIM_STYLE_INVALID) ClearAnimations(playerid);
-
-			playerWater[playerid][playerSwimStyle] = SWIM_STYLE_INVALID;
-
-			CallRemoteFunction("OnPlayerLeaveWater" , "ii" , playerid , i);
-			return 1;
-		}
 	}
-	return 1;
+	return CallLocalFunction("CW_OnPlayerEnterDynamicArea", "ii", playerid , areaid);
 }
 
-hook OnPlayerUpdate(playerid)
+#if defined _ALS_OnPlayerEnterDynamicArea
+	#undef OnPlayerEnterDynamicArea
+#else
+	#define _ALS_OnPlayerEnterDynamicArea
+#endif
+#define OnPlayerEnterDynamicArea CW_OnPlayerEnterDynamicArea
+forward CW_OnPlayerEnterDynamicArea(playerid, areaid);
+
+
+public OnPlayerLeaveDynamicArea(playerid , areaid)
 {
+	new i = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID);
+	if(0 <= i < MAX_WATERS)
+	{
+		playerWater[playerid][playerInWater] = false;
+		playerWater[playerid][playerWaterID] = -1;
+		if(GetPlayerSwimStyle(playerid) != SWIM_STYLE_INVALID) ClearAnimations(playerid);
+		playerWater[playerid][playerSwimStyle] = SWIM_STYLE_INVALID;
+		TextDrawHideForPlayer(playerid , waterTD);
+		CallRemoteFunction("OnPlayerLeaveWater" , "ii" , playerid , i);
+		return 1;
+
+	}
+	return CallLocalFunction("CW_OnPlayerLeaveDynamicArea", "ii", playerid , areaid);
+}
+
+#if defined _ALS_OnPlayerLeaveDynamicArea
+	#undef OnPlayerLeaveDynamicArea
+#else
+	#define _ALS_OnPlayerLeaveDynamicArea
+#endif
+#define OnPlayerLeaveDynamicArea CW_OnPlayerLeaveDynamicArea
+forward CW_OnPlayerLeaveDynamicArea(playerid, areaid);
 
 
-
+public OnPlayerUpdate(playerid)
+{
 		if(!IsPlayerNPC(playerid) && playerWater[playerid][playerInWater] == true)
 		{
 			new Float:x,Float:y,Float:z;
@@ -290,8 +353,17 @@ hook OnPlayerUpdate(playerid)
 
 		}
 
-		return 1;
+		return CallLocalFunction("CW_OnPlayerUpdate", "i", playerid);
 }
+
+#if defined _ALS_OnPlayerUpdate
+	#undef OnPlayerUpdate
+#else
+	#define _ALS_OnPlayerUpdate
+#endif
+#define OnPlayerUpdate CW_OnPlayerUpdate
+forward CW_OnPlayerUpdate(playerid);
+
 
 stock SetPlayerLookAt(playerid, Float:X, Float:Y) // credits to someone in samp forums I can not remember
 {
@@ -313,7 +385,7 @@ stock GetPlayerSwimStyle(playerid)
 
 #if defined FILTERSCRIPT
 
-hook OnFilterScriptInit()
+public OnFilterScriptInit()
 {
     waterTD = TextDrawCreate(-20.000000,2.000000,"|");
     TextDrawUseBox(waterTD,1);
@@ -327,18 +399,37 @@ hook OnFilterScriptInit()
     TextDrawSetOutline(waterTD,1);
     TextDrawSetProportional(waterTD,1);
     TextDrawSetShadow(waterTD,1);
-    return 1;
+    
+    for(new i=0; i<MAX_WATERS; i++) waterInfo[i][waterAvailable] = 1;
+    
+    return CallLocalFunction("CW_OnFilterScriptInit", "");
 }
 
-hook OnFilterScriptExit()
+#if defined _ALS_OnFilterScriptInit
+	#undef OnFilterScriptInit
+#else
+	#define _ALS_OnFilterScriptInit
+#endif
+#define OnFilterScriptInit CW_OnFilterScriptInit
+forward CW_OnFilterScriptInit(playerid);
+
+public OnFilterScriptExit()
 {
 	TextDrawDestroy(waterTD);
-    return 1;
+    return CallLocalFunction("CW_OnFilterScriptExit", "");
 }
+
+#if defined _ALS_OnFilterScriptExit
+	#undef OnFilterScriptExit
+#else
+	#define _ALS_OnFilterScriptExit
+#endif
+#define OnFilterScriptExit CW_OnFilterScriptExit
+forward CW_OnFilterScriptExit(playerid);
 
 #else
 
-hook OnGameModeInit()
+public OnGameModeInit()
 {
     waterTD = TextDrawCreate(-20.000000,2.000000,"|");
     TextDrawUseBox(waterTD,1);
@@ -352,13 +443,32 @@ hook OnGameModeInit()
     TextDrawSetOutline(waterTD,1);
     TextDrawSetProportional(waterTD,1);
     TextDrawSetShadow(waterTD,1);
-    return 1;
+    
+    for(new i=0; i<MAX_WATERS; i++) waterInfo[i][waterAvailable] = 1;
+    
+	return CallLocalFunction("CW_OnGameModeInit", "");
 }
 
-hook OnGameModeExit()
+#if defined _ALS_OnGameModeInit
+	#undef OnGameModeInit
+#else
+	#define _ALS_OnGameModeInit
+#endif
+#define OnGameModeInit CW_OnGameModeInit
+forward CW_OnGameModeInit(playerid);
+
+public OnGameModeExit()
 {
     TextDrawDestroy(waterTD);
-    return 1;
+    return CallLocalFunction("CW_OnGameModeExit", "");
 }
+
+#if defined _ALS_OnGameModeExit
+	#undef OnGameModeExit
+#else
+	#define _ALS_OnGameModeExit
+#endif
+#define OnGameModeExit CW_OnGameModeExit
+forward CW_OnGameModeExit(playerid);
 
 #endif
