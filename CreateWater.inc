@@ -5,7 +5,7 @@
 
 
 		Functions :
-		    CreateWater(minx , miny , maxx , maxy , z , depth);
+		    CreateWater(minx , miny , maxx , maxy , z , depth , world=-1 , interior=-1);
 			IsPlayerInWaterEx(playerid);
 			GetPlayerWaterID(playerid);
 			GetWaterDepth(waterid);
@@ -44,7 +44,8 @@ enum CW_playerWaterInfo
 	bool:playerInWater,
 	playerWaterID,
 	playerSwimStyle,
-	bool:playerWaterTD
+	bool:playerWaterTD,
+	playerSwimObj
 }
 
 new playerWater[MAX_PLAYERS][CW_playerWaterInfo];
@@ -72,7 +73,7 @@ static Float:CW_abs(Float:val)
     return val;
 }
 
-stock CreateWater(Float:minx , Float:miny , Float:maxx , Float: maxy , Float:z , Float:depth)
+stock CreateWater(Float:minx , Float:miny , Float:maxx , Float: maxy , Float:z , Float:depth , world=-1 , interior=-1)
 {
 	static
 	    xWayCount=0,
@@ -95,21 +96,21 @@ stock CreateWater(Float:minx , Float:miny , Float:maxx , Float: maxy , Float:z ,
 
 	for(new i=0; i<xWayCount; i++)
 	{
-		new CW_shit = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay , miny , z , -90.0 , 0.0 , 0.0);
+		new CW_shit = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay , miny , z , -90.0 , 0.0 , 0.0 , world , interior);
 		SetDynamicObjectMaterial(CW_shit , 0 , 19603 , "ballyswater" , "waterclear256");
 		Streamer_SetIntData(STREAMER_TYPE_OBJECT, CW_shit, E_STREAMER_EXTRA_ID, 666);
 
-		CW_shit = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay , miny , z , 90.0 , 0.0 , 0.0);
+		CW_shit = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay , miny , z , 90.0 , 0.0 , 0.0 , world , interior);
 		SetDynamicObjectMaterial(CW_shit , 0 , 19603 , "ballyswater" , "waterclear256");
 		Streamer_SetIntData(STREAMER_TYPE_OBJECT, CW_shit, E_STREAMER_EXTRA_ID, 666);
 
 		for(new j=1; j<yWayCount; j++)
 		{
-			new CW_shit1 = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay  , miny + ((1.908086 * j))*yWay , z , -90.0 , 0.0 , 0.0);
+			new CW_shit1 = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay  , miny + ((1.908086 * j))*yWay , z , -90.0 , 0.0 , 0.0 , world , interior);
 		    SetDynamicObjectMaterial(CW_shit1 , 0 , 19603 , "ballyswater" , "waterclear256");
 		    Streamer_SetIntData(STREAMER_TYPE_OBJECT, CW_shit1, E_STREAMER_EXTRA_ID, 666);
 
-		    CW_shit1 = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay  , miny + ((1.908086 * j))*yWay , z , 90.0 , 0.0 , 0.0);
+		    CW_shit1 = CreateDynamicObject(2691 , minx + ((2.13943 * i))*xWay  , miny + ((1.908086 * j))*yWay , z , 90.0 , 0.0 , 0.0 , world , interior);
 		    SetDynamicObjectMaterial(CW_shit1 , 0 , 19603 , "ballyswater" , "waterclear256");
 		    Streamer_SetIntData(STREAMER_TYPE_OBJECT, CW_shit1, E_STREAMER_EXTRA_ID, 666);
 		}
@@ -124,7 +125,7 @@ stock CreateWater(Float:minx , Float:miny , Float:maxx , Float: maxy , Float:z ,
 	waterInfo[waterCount][waterAvailable] = 0;
 
 
-	waterInfo[waterCount][waterArea] = CreateDynamicCube(minx - ((2.13943 / 2))*xWay , miny - ((1.908086 / 2))*yWay , z-0.25 , minx + ((2.13943 * xWayCount) - (2.13943 / 2)*xWay)*xWay , miny + ((1.908086 * yWayCount) - (1.908086 / 2)*yWay)*yWay , depth);
+	waterInfo[waterCount][waterArea] = CreateDynamicCube(minx - ((2.13943 / 2))*xWay , miny - ((1.908086 / 2))*yWay , z-0.25 , minx + ((2.13943 * xWayCount) - (2.13943 / 2)*xWay)*xWay , miny + ((1.908086 * yWayCount) - (1.908086 / 2)*yWay)*yWay , depth  , world , interior);
 
     Streamer_SetIntData(STREAMER_TYPE_AREA, waterInfo[waterCount][waterArea], E_STREAMER_EXTRA_ID, waterCount);
 
@@ -213,7 +214,6 @@ public OnPlayerEnterDynamicArea(playerid , areaid)
 #define OnPlayerEnterDynamicArea CW_OnPlayerEnterDynamicArea
 forward CW_OnPlayerEnterDynamicArea(playerid, areaid);
 
-
 public OnPlayerLeaveDynamicArea(playerid , areaid)
 {
 	new i = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID);
@@ -239,13 +239,44 @@ public OnPlayerLeaveDynamicArea(playerid , areaid)
 #define OnPlayerLeaveDynamicArea CW_OnPlayerLeaveDynamicArea
 forward CW_OnPlayerLeaveDynamicArea(playerid, areaid);
 
-
 public OnPlayerUpdate(playerid)
 {
 		if(!IsPlayerNPC(playerid) && playerWater[playerid][playerInWater] == true)
 		{
+		
 			new Float:x,Float:y,Float:z;
 			GetPlayerPos(playerid,x,y,z);
+
+			if(GetPlayerSwimStyle(playerid) == SWIM_STYLE_IDLE_ON_WATER)
+			{
+			    if(!IsValidDynamicObject(playerWater[playerid][playerSwimObj]))
+				{
+					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.34 , 90.0 , 0.0 , 0.0);
+					SetDynamicObjectMaterial(playerWater[playerid][playerSwimObj] , 0 , 0, "none", "none", 0x00000000);
+				}
+			} 
+			else if(GetPlayerSwimStyle(playerid) == SWIM_STYLE_MOVE_ON_WATER)
+			{
+			    if(!IsValidDynamicObject(playerWater[playerid][playerSwimObj]))
+				{
+					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 90.0 , 0.0 , 0.0);
+					SetDynamicObjectMaterial(playerWater[playerid][playerSwimObj] , 0 , 0, "none", "none", 0x00000000);
+				}
+				MoveDynamicObject(playerWater[playerid][playerSwimObj] , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 5.54);
+			}
+			else if(GetPlayerSwimStyle(playerid) == SWIM_STYLE_MOVE_FAST_ON_WATER)
+			{
+			    if(!IsValidDynamicObject(playerWater[playerid][playerSwimObj]))
+				{
+					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 90.0 , 0.0 , 0.0);
+					SetDynamicObjectMaterial(playerWater[playerid][playerSwimObj] , 0 , 0, "none", "none", 0x00000000);
+				}
+				MoveDynamicObject(playerWater[playerid][playerSwimObj] , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 17.24);
+			}
+			else { if(IsValidDynamicObject(playerWater[playerid][playerSwimObj])) DestroyDynamicObject(playerWater[playerid][playerSwimObj]); }
+			
+			
+			
 		    if(z < waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 0.45)
 	    	{
 		        if(!playerWater[playerid][playerWaterTD])
@@ -269,23 +300,21 @@ public OnPlayerUpdate(playerid)
                 Float:xv,Float:yv,Float:zv;
 
             GetPlayerCameraFrontVector(playerid,xv,yv,zv);
-
         	if(ud < 0)
         	{
-
-                	v_x = (xv+0.01)/30.0;
-                	v_y = (yv+0.01)/30.0;
-
-        	}
+                	v_x = (xv+0.001)/4000.0;
+                	v_y = (yv+0.001)/4000.0;
+        	} else 
         	if(k & KEY_FIRE)
 			{
                 if(GetPlayerSwimStyle(playerid) == SWIM_STYLE_MOVE_ON_WATER
 				|| GetPlayerSwimStyle(playerid) == SWIM_STYLE_MOVE_FAST_ON_WATER
 				|| GetPlayerSwimStyle(playerid) == SWIM_STYLE_IDLE_ON_WATER)
 				{
-                	v_z = -0.18;
+                	v_z = -0.22;
                 	ApplyAnimation(playerid,"SWIM","Swim_Dive_Under",4.1,0,1,1,0,0,1);
                 	playerWater[playerid][playerSwimStyle] = SWIM_STYLE_DIVE_UNDER_WATER;
+                	if(IsValidDynamicObject(playerWater[playerid][playerSwimObj])) DestroyDynamicObject(playerWater[playerid][playerSwimObj]);
                 }
             }
         	if(k & KEY_SPRINT)
@@ -294,9 +323,9 @@ public OnPlayerUpdate(playerid)
                 v_y *=2.0;
                 v_z *=2.0;
         	}
-        	if(v_z == 0.0 && z < waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 0.32 && GetPlayerSwimStyle(playerid) != SWIM_STYLE_MOVE_UNDER_WATER)
+        	if(v_z == 0.0 && z < waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 0.32 && GetPlayerSwimStyle(playerid) == SWIM_STYLE_COMING_UP)
                 v_z = 0.035;
-
+				
         	if(v_x == 0 && v_y == 0)
         	{
                 if(GetPlayerSwimStyle(playerid) == SWIM_STYLE_MOVE_ON_WATER
@@ -312,7 +341,6 @@ public OnPlayerUpdate(playerid)
 					ApplyAnimation(playerid,"SWIM","Swim_Glide",6.1,1,1,1,1,0,1);
                     playerWater[playerid][playerSwimStyle] = SWIM_STYLE_COMING_UP;
 				}
-
         	}
         	else
         	{
@@ -335,22 +363,14 @@ public OnPlayerUpdate(playerid)
 						ApplyAnimation(playerid,"SWIM","Swim_Under",6.1,1,1,1,1,0,1);
                         playerWater[playerid][playerSwimStyle] = SWIM_STYLE_MOVE_UNDER_WATER;
                     }
-
-
                 }
 				else if(GetPlayerSwimStyle(playerid) == SWIM_STYLE_IDLE_ON_WATER || GetPlayerSwimStyle(playerid) == SWIM_STYLE_MOVE_FAST_ON_WATER)
 				{
 					ApplyAnimation(playerid,"SWIM","Swim_Breast",6.1,1,1,1,1,0,1);
 					playerWater[playerid][playerSwimStyle] = SWIM_STYLE_MOVE_ON_WATER;
 				}
-
-
         	}
-
         	SetPlayerVelocity(playerid,v_x,v_y,v_z);
-
-
-
 		}
 
 		return CallLocalFunction("CW_OnPlayerUpdate", "i", playerid);
@@ -363,7 +383,6 @@ public OnPlayerUpdate(playerid)
 #endif
 #define OnPlayerUpdate CW_OnPlayerUpdate
 forward CW_OnPlayerUpdate(playerid);
-
 
 stock SetPlayerLookAt(playerid, Float:X, Float:Y) // credits to someone in samp forums I can not remember
 {
