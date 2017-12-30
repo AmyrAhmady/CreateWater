@@ -251,7 +251,7 @@ public OnPlayerUpdate(playerid)
 			{
 			    if(!IsValidDynamicObject(playerWater[playerid][playerSwimObj]))
 				{
-					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.34 , 90.0 , 0.0 , 0.0);
+					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.34 , 90.0 , 0.0 , 0.0 , -1 ,-1 ,playerid);
 					SetDynamicObjectMaterial(playerWater[playerid][playerSwimObj] , 0 , 0, "none", "none", 0x00000000);
 				}
 			} 
@@ -259,7 +259,7 @@ public OnPlayerUpdate(playerid)
 			{
 			    if(!IsValidDynamicObject(playerWater[playerid][playerSwimObj]))
 				{
-					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 90.0 , 0.0 , 0.0);
+					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 90.0 , 0.0 , 0.0 , -1 ,-1 ,playerid);
 					SetDynamicObjectMaterial(playerWater[playerid][playerSwimObj] , 0 , 0, "none", "none", 0x00000000);
 				}
 				MoveDynamicObject(playerWater[playerid][playerSwimObj] , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 5.54);
@@ -268,7 +268,7 @@ public OnPlayerUpdate(playerid)
 			{
 			    if(!IsValidDynamicObject(playerWater[playerid][playerSwimObj]))
 				{
-					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 90.0 , 0.0 , 0.0);
+					playerWater[playerid][playerSwimObj] = CreateDynamicObject(2928 , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 90.0 , 0.0 , 0.0 , -1 ,-1 ,playerid);
 					SetDynamicObjectMaterial(playerWater[playerid][playerSwimObj] , 0 , 0, "none", "none", 0x00000000);
 				}
 				MoveDynamicObject(playerWater[playerid][playerSwimObj] , x , y , waterInfo[playerWater[playerid][playerWaterID]][waterZ] - 1.36 , 17.24);
